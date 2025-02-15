@@ -1,0 +1,54 @@
+import numpy as np
+import skfuzzy as fuzz
+from skfuzzy import control as ctrl
+import matplotlib.pyplot as plt
+
+# Paso 1: Definir las variables difusas
+# Entrada 1: Temperatura
+temperatura = ctrl.Antecedent(np.arange(0, 51, 1), 'temperatura')
+# Entrada 2: Humedad
+humedad = ctrl.Antecedent(np.arange(0, 101, 1), 'humedad')
+# Salida: Velocidad del ventilador
+ventilador = ctrl.Consequent(np.arange(0, 11, 1), 'ventilador')
+
+# Paso 2: Definir las funciones de membresía
+# Funciones de membresía para la temperatura
+temperatura['baja'] = fuzz.trimf(temperatura.universe, [0, 0, 25])
+temperatura['media'] = fuzz.trimf(temperatura.universe, [0, 25, 50])
+temperatura['alta'] = fuzz.trimf(temperatura.universe, [25, 50, 50])
+
+# Funciones de membresía para la humedad
+humedad['baja'] = fuzz.trimf(humedad.universe, [0, 0, 50])
+humedad['media'] = fuzz.trimf(humedad.universe, [0, 50, 100])
+humedad['alta'] = fuzz.trimf(humedad.universe, [50, 100, 100])
+
+# Funciones de membresía para la velocidad del ventilador
+ventilador['baja'] = fuzz.trimf(ventilador.universe, [0, 0, 5])
+ventilador['media'] = fuzz.trimf(ventilador.universe, [0, 5, 10])
+ventilador['alta'] = fuzz.trimf(ventilador.universe, [5, 10, 10])
+
+# Paso 3: Definir las reglas difusas
+regla1 = ctrl.Rule(temperatura['alta'] & humedad['baja'], ventilador['alta'])
+regla2 = ctrl.Rule(temperatura['media'] & humedad['media'], ventilador['media'])
+regla3 = ctrl.Rule(temperatura['baja'] & humedad['alta'], ventilador['baja'])
+
+# Paso 4: Crear el sistema de control difuso
+control_ventilador = ctrl.ControlSystem([regla1, regla2, regla3])
+controlador = ctrl.ControlSystemSimulation(control_ventilador)
+
+# Paso 5: Aplicar los valores de entrada (ejemplo: temperatura = 30°C, humedad = 70%)
+controlador.input['temperatura'] = 30
+controlador.input['humedad'] = 70
+
+# Paso 6: Calcular el resultado
+controlador.compute()
+
+# Mostrar el resultado
+print(f"Velocidad del ventilador: {controlador.output['ventilador']}")
+ventilador.view(sim=controlador)
+
+# Paso 7: Graficar las funciones de membresía
+temperatura.view()
+humedad.view()
+ventilador.view()
+plt.show()
