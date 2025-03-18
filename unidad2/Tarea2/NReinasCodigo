@@ -1,0 +1,122 @@
+import random
+import matplotlib.pyplot as plt
+import numpy as np
+
+class BusquedaTabuNReinas:
+    def __init__(self, N, max_iteraciones=1000, tenure_tabu=10, estado_inicial=None):
+        self.N = N
+        self.max_iteraciones = max_iteraciones
+        self.tenure_tabu = tenure_tabu
+        self.estado_inicial = estado_inicial if estado_inicial else self.generar_estado_aleatorio()
+
+    def generar_estado_aleatorio(self):
+        """Genera un estado inicial aleatorio"""
+        estado = list(range(self.N))
+        random.shuffle(estado)
+        return estado
+
+    def evaluar_conflictos(self, estado):
+        """Calcula el número de pares de reinas que se atacan"""
+        conflictos = 0
+        for i in range(self.N):
+            for j in range(i + 1, self.N):
+                if abs(estado[i] - estado[j]) == j - i:  # Ataque en diagonal
+                    conflictos += 1
+        return conflictos
+
+    def generar_vecinos(self, estado):
+        """Genera estados vecinos intercambiando dos columnas"""
+        vecinos = []
+        for i in range(self.N):
+            for j in range(i + 1, self.N):
+                vecino = estado[:]
+                vecino[i], vecino[j] = vecino[j], vecino[i]
+                vecinos.append((vecino, (i, j)))  # Estado y movimiento realizado
+        return vecinos
+
+    def busqueda_tabu(self):
+        """Ejecuta la búsqueda tabú"""
+        estado_actual = self.estado_inicial[:]
+        mejor_estado = estado_actual[:]
+        mejor_conflicto = self.evaluar_conflictos(estado_actual)
+
+        lista_tabu = {}
+        iteracion = 0
+
+        while mejor_conflicto > 0 and iteracion < self.max_iteraciones:
+            vecinos = self.generar_vecinos(estado_actual)
+            mejor_candidato = None
+            mejor_candidato_conflicto = float('inf')
+            mejor_movimiento = None
+
+            for vecino, movimiento in vecinos:
+                if movimiento in lista_tabu and lista_tabu[movimiento] > iteracion:
+                    continue  # Saltamos movimientos tabú
+
+                conflictos = self.evaluar_conflictos(vecino)
+                if conflictos < mejor_candidato_conflicto:
+                    mejor_candidato = vecino
+                    mejor_candidato_conflicto = conflictos
+                    mejor_movimiento = movimiento
+
+            if mejor_candidato is None:  # Si no hay movimientos válidos, terminamos
+                break
+
+            estado_actual = mejor_candidato
+
+            # Actualizamos mejor solución encontrada
+            if mejor_candidato_conflicto < mejor_conflicto:
+                mejor_estado = mejor_candidato[:]
+                mejor_conflicto = mejor_candidato_conflicto
+
+            # Agregamos a la lista tabú
+            lista_tabu[mejor_movimiento] = iteracion + self.tenure_tabu
+
+            iteracion += 1
+
+        return mejor_estado, mejor_conflicto, iteracion
+
+def graficar_tablero(estado):
+    """Dibuja el tablero de ajedrez con las reinas"""
+    N = len(estado)
+    tablero = np.zeros((N, N))
+
+    # Colocar reinas
+    for i in range(N):
+        tablero[estado[i], i] = 1
+
+    fig, ax = plt.subplots()
+    ax.matshow(tablero, cmap="gray_r")
+
+    # Dibujar las reinas
+    for i in range(N):
+        ax.text(i, estado[i], '♛', fontsize=20, ha='center', va='center', color='red')
+
+    plt.xticks(range(N))
+    plt.yticks(range(N))
+    plt.show()
+
+# Parámetros configurables
+N = int(input("Ingrese el número de reinas: "))
+max_iteraciones = int(input("Ingrese el número máximo de iteraciones: "))
+
+# Opción para ingresar estado inicial
+usar_estado_manual = input("¿Desea ingresar un estado inicial? (s/n): ").strip().lower()
+if usar_estado_manual == 's':
+    estado_inicial = list(map(int, input(f"Ingrese {N} números separados por espacio (posición de reinas en cada fila): ").split()))
+else:
+    estado_inicial = None
+
+# Ejecutamos el algoritmo
+nreinas = BusquedaTabuNReinas(N=N, max_iteraciones=max_iteraciones, estado_inicial=estado_inicial)
+solucion, conflictos, iteraciones = nreinas.busqueda_tabu()
+
+# Mostramos resultados
+print("\nEstado inicial:", estado_inicial if estado_inicial else "Aleatorio")
+print("Solución encontrada:", solucion)
+print("Conflictos:", conflictos)
+print("Iteraciones realizadas:", iteraciones)
+
+# Graficamos la solución
+graficar_tablero(solucion)
+
