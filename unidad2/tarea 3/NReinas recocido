@@ -1,0 +1,57 @@
+import random
+import math
+
+def estado_inicial(n, estado_predefinido=None):
+    if estado_predefinido:  ##bloque de codigo indentado si no existe un estado predefinido se va a generar uno aleatorio
+        return estado_predefinido
+    return [random.randint(0, n - 1) for _ in range(n)]
+
+def costo(estado):
+    Conflictos = 0
+    n = len(estado)
+    for i in range(n):
+        for j in range(i + 1, n):
+            if estado[i] == estado[j] or abs(estado[i] - estado[j]) == abs(i - j):##al ser abs no se necesita sumar y restar las filas y columnas
+                Conflictos += 1
+    return Conflictos
+
+def vecino(estado):
+    n = len(estado)
+    nuevo_estado = estado[:] ## crea una copia superficial de la lista estado
+    fila = random.randint(0, n - 1) ##el código elige aleatoriamente un índice de la lista
+    nueva_columna = random.randint(0, n - 1)
+    while nueva_columna == nuevo_estado[fila]:  ##se asegura que la nueva columna sea diferente de la columna actual
+        nueva_columna = random.randint(0, n - 1)
+    nuevo_estado[fila] = nueva_columna 
+    return nuevo_estado
+
+def recocido_simulado(n, temperatura=1000, tasa_enfriamiento=0.99, temperatura_min=0.1, estado_predefinido=None):
+    estado = estado_inicial(n, estado_predefinido) ##se inicializa el estado
+    mejor_estado = estado[:] ##se usa [:] para hacer una copia superficial
+    mejor_costo = costo(estado) 
+
+    while temperatura > temperatura_min:
+        nuevo_estado = vecino(estado)
+        nuevo_costo = costo(nuevo_estado)
+        print("Estado actual:", estado)
+        print("Costo actual:", costo(estado))
+        print("Costo nuevo:", nuevo_costo)
+        print("Temperatura:", temperatura)
+
+        if nuevo_costo < mejor_costo or random.uniform(0, 1) < math.exp((costo(estado) - nuevo_costo) / temperatura):
+            estado = nuevo_estado
+            mejor_costo = nuevo_costo 
+            mejor_estado = estado[:] ##se usa [:] para hacer una copia superficial
+
+        if mejor_costo == 0:
+            break
+
+        temperatura *= tasa_enfriamiento ##se actualiza la temperatura
+
+    return mejor_estado
+
+if __name__ == "__main__":
+    n = 4  # Cambia el número de reinas
+    estado_predefinido = [2, 0, 3, 1]  # Modifica esta lista según tu preferencia
+    solucion = recocido_simulado(n, estado_predefinido=estado_predefinido)
+    print("Solución encontrada:", solucion)
