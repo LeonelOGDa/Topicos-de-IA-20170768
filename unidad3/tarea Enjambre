@@ -1,0 +1,74 @@
+import random
+
+# Distancia entre ciudades (puedes modificar esto)
+def generar_matriz_distancias(num_ciudades):
+    return [[random.randint(10, 100) if i != j else 0 for j in range(num_ciudades)] for i in range(num_ciudades)]
+
+def calcular_distancia(ruta, matriz):
+    distancia_total = 0
+    for i in range(len(ruta)):
+        distancia_total += matriz[ruta[i]][ruta[(i + 1) % len(ruta)]]  # Regreso al inicio
+    return distancia_total
+
+class CelulaTSP:
+    def __init__(self, num_ciudades, matriz_distancias):
+        self.ruta = random.sample(range(num_ciudades), num_ciudades)
+        self.distancia = calcular_distancia(self.ruta, matriz_distancias)
+        self.mejor_ruta = list(self.ruta)
+        self.mejor_distancia = self.distancia
+
+    def actualizar_mejor(self, matriz_distancias):
+        self.distancia = calcular_distancia(self.ruta, matriz_distancias)
+        if self.distancia < self.mejor_distancia:
+            self.mejor_ruta = list(self.ruta)
+            self.mejor_distancia = self.distancia
+
+    def aplicar_operador_swap(self):
+        i, j = random.sample(range(len(self.ruta)), 2)
+        self.ruta[i], self.ruta[j] = self.ruta[j], self.ruta[i]
+
+    def mover_hacia(self, mejor_global):
+        nueva_ruta = list(self.ruta)
+        for i in range(len(nueva_ruta)):
+            if nueva_ruta[i] != mejor_global[i]:
+                idx = nueva_ruta.index(mejor_global[i])
+                nueva_ruta[i], nueva_ruta[idx] = nueva_ruta[idx], nueva_ruta[i]
+                break  # Solo un cambio por iteración hacia el mejor
+        self.ruta = nueva_ruta
+
+class EnjambreTSP:
+    def __init__(self, num_celulas, num_ciudades):
+        self.matriz = generar_matriz_distancias(num_ciudades)
+        self.celulas = [CelulaTSP(num_ciudades, self.matriz) for _ in range(num_celulas)]
+        self.mejor_global = min(self.celulas, key=lambda c: c.distancia).mejor_ruta
+        self.mejor_valor = calcular_distancia(self.mejor_global, self.matriz)
+
+    def actualizar_enjambre(self):
+        for celula in self.celulas:
+            celula.aplicar_operador_swap()
+            if random.random() < 0.5:
+                celula.mover_hacia(self.mejor_global)
+            celula.actualizar_mejor(self.matriz)
+
+        mejor_actual = min(self.celulas, key=lambda c: c.mejor_distancia)
+        if mejor_actual.mejor_distancia < self.mejor_valor:
+            self.mejor_valor = mejor_actual.mejor_distancia
+            self.mejor_global = list(mejor_actual.mejor_ruta)
+
+    def optimizar(self, iteraciones):
+        for i in range(iteraciones):
+            self.actualizar_enjambre()
+            print(f"Iteración {i+1}: Mejor distancia = {self.mejor_valor}")
+        return self.mejor_global, self.mejor_valor
+
+# Zona principal
+if __name__ == "__main__":
+    num_celulas = 30
+    num_ciudades = 10
+    iteraciones = 100
+
+    enjambre = EnjambreTSP(num_celulas, num_ciudades)
+    mejor_ruta, mejor_distancia = enjambre.optimizar(iteraciones)
+
+    print("\nMejor ruta encontrada: ", mejor_ruta)
+    print("Distancia total:       ", mejor_distancia)
